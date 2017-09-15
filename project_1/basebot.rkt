@@ -26,10 +26,11 @@
 ;; note that there are two solutions, only one makes sense physically
 
 (define square
-  (lambda (x) (* x x)))
+  (lambda (x)
+    (* x x)))
 
 (define gravity 9.8)  ;; in m/s
-(define pi (* 2 (acos 0)))
+(define pi 3.14159)
 
 ;; Problem 1
 
@@ -109,7 +110,7 @@
 (time-to-impact 100 0)
 ;; => 20.4
 (time-to-impact 27 0)
-;; => 5.5
+;; => 5.51
 
 (time-to-height 0 15 0)
 ;; => 1.74
@@ -132,18 +133,19 @@
        180.)))
 
 (define x-velocity
-  (lambda (velocity angle)
-    (* velocity (cos angle))))
+  (lambda (velocity rad-angle)
+    (* velocity (cos rad-angle))))
 
 (define y-velocity
-  (lambda (velocity angle)
-    (* velocity (sin angle))))
+  (lambda (velocity rad-angle)
+    (* velocity (sin rad-angle))))
 
 (define travel-distance-simple
   (lambda (elevation velocity angle)
     (let ((rad-angle (degree2radian angle)))
-      (* (x-velocity velocity rad-angle)
-         (time-to-impact (y-velocity velocity rad-angle) elevation)))))
+      (let ((vx (x-velocity velocity rad-angle))
+            (time (time-to-impact (y-velocity velocity rad-angle) elevation)))
+        (position 0 vx 0 time)))))
 
 ;; let's try this out for some example values.  Note that we are going to 
 ;; do everything in metric units, but for quaint reasons it is easier to think
@@ -202,13 +204,13 @@
 
 (define alpha-increment 0.5)
 
-(define find-best-angle-helper
+(define find-best-angle-iter
   (lambda (elevation velocity start-angle end-angle)
     (if (= start-angle end-angle)
         end-angle
-        (choose-best elevation velocity (find-best-angle-helper elevation velocity start-angle (- end-angle alpha-increment)) end-angle))))
+        (choose-best-angle elevation velocity (find-best-angle-iter elevation velocity start-angle (- end-angle alpha-increment)) end-angle))))
 
-(define choose-best
+(define choose-best-angle
   (lambda (elevation velocity a b)
     (if (> (travel-distance-simple elevation velocity a) 
            (travel-distance-simple elevation velocity b))
@@ -216,7 +218,7 @@
 
 (define find-best-angle
   (lambda (velocity elevation)
-    (find-best-angle-helper velocity elevation 0 90)))
+    (find-best-angle-iter velocity elevation 0 90)))
 
 ;; find best angle
 ;; try for other velocities
@@ -296,23 +298,74 @@
 ;; (which could be say 0.1) and compute new values for each of these parameters
 ;; when y reaches the desired point (<= 0) we stop, and return the distance (x)
 
-;(define drag-coeff 0.5)
-;(define density 1.25)  ; kg/m^3
-;(define mass .145)  ; kg
-;(define diameter 0.074)  ; m
-;(define beta (* .5 drag-coeff density (* 3.14159 .25 (square diameter))))
-;
-;(define integrate
-;  (lambda (x0 y0 u0 v0 dt g m beta)
-;    YOUR-CODE-HERE))
-;
-;(define travel-distance
-;  YOUR-CODE-HERE)
+(define drag-coeff 0.5)
+(define density 1.25)  ; kg/m^3
+(define mass .145)  ; kg
+(define diameter 0.074)  ; m
+(define beta (* .5 drag-coeff density (* pi .25 (square diameter))))
 
+(define dx
+  (lambda (u dt)
+    (* u dt)))
 
-;; RUN SOME TEST CASES
+(define dy
+  (lambda (v dt)
+    (* v dt)))
 
-;; what about Denver?
+(define du
+  (lambda (u v dt m beta)
+    (- (/ (* beta
+             (sqrt (+ (square u)
+                      (square v)))
+             u
+             dt)
+          m))))
+
+(define dv
+  (lambda (u v dt m beta g)
+    (- (* (+ (/ (* beta
+                   (sqrt (+ (square u)
+                            (square v)))
+                   v)
+                m)
+             g)
+          dt))))
+
+(define integrate
+  (lambda (x0 y0 u0 v0 dt g m beta)
+    (if (< y0 0)
+        x0
+        (integrate
+         (+ x0 (dx u0 dt))
+         (+ y0 (dy v0 dt))
+         (+ u0 (du u0 v0 dt m beta))
+         (+ v0 (dv u0 v0 dt m beta g))
+         dt
+         g
+         m
+         beta))))
+
+(define travel-distance
+  (lambda (elevation velocity angle)
+    (let ((rad-angle (degree2radian angle)))
+      (integrate
+       0
+       elevation
+       (x-velocity velocity rad-angle)
+       (y-velocity velocity rad-angle)
+       0.1
+       gravity
+       mass
+       beta))))
+
+(displayln "Problem 6. Test")
+
+(meters-to-feet (travel-distance 0 45 45))
+;; => 305.27
+(meters-to-feet (travel-distance 0 40 45))
+;; => 269.6
+(meters-to-feet (travel-distance 0 35 45))
+;; => 232.62
 
 ;; Problem 7
  
@@ -321,14 +374,173 @@
 ;; use, given a velocity, in order to reach a given height (receiver) at a 
 ;; given distance
 
+(define integrate-time
+  (lambda (x0 y0 u0 v0 t0 dt g m beta)
+    (if (< y0 0)
+        t0
+        (integrate-time
+         (+ x0 (dx u0 dt))
+         (+ y0 (dy v0 dt))
+         (+ u0 (du u0 v0 dt m beta))
+         (+ v0 (dv u0 v0 dt m beta g))
+         (+ t0 dt)
+         dt
+         g
+         m
+         beta))))
+
+(define travel-time
+  (lambda (elevation velocity angle)
+    (let ((rad-angle (degree2radian angle)))
+      (integrate-time
+       0
+       elevation
+       (x-velocity velocity rad-angle)
+       (y-velocity velocity rad-angle)
+       0
+       0.1
+       gravity
+       mass
+       beta))))
+
+(define hit?
+  (lambda (traveled-distance target-distance tolerance)
+    (if (< (abs (- traveled-distance
+                   target-distance))
+           tolerance)
+        #t
+        #f)))
+
+(define throw-ball-iter
+  (lambda (elevation velocity target-distance tolerance start-angle end-angle shortest-time)
+
+    (define next-iter
+      (lambda (time)
+        (throw-ball-iter elevation velocity target-distance tolerance (+ start-angle alpha-increment) end-angle time)))
+  
+    (if (> start-angle end-angle)
+        shortest-time
+        (let ((traveled-distance (travel-distance elevation velocity start-angle)))
+          (if (hit? traveled-distance target-distance tolerance)
+              (let ((t0 (time-to-impact (y-velocity velocity (degree2radian start-angle)) elevation)))
+                (cond ((or (= shortest-time 0) (< t0 shortest-time))
+                       (next-iter t0))
+                      (else
+                       (next-iter shortest-time))))
+              (next-iter shortest-time))))))
+
+(define throw-ball
+  (lambda (elevation velocity desired-distance)
+    (throw-ball-iter elevation velocity desired-distance 3 -90 90 0)))
 
 ;; a cather trying to throw someone out at second has to get it roughly 36 m
 ;; (or 120 ft) how quickly does the ball get there, if he throws at 55m/s,
 ;;  at 45m/s, at 35m/s?
 
+(displayln "Problem 7. Test")
+
+(throw-ball 1 55 36)
+;; => 0.56
+(throw-ball 1 45 36)
+;; => 0.63
+(throw-ball 1 35 36)
+;; => 0.95
+
 ;; try out some times for distances (30, 60, 90 m) or (100, 200, 300 ft) 
 ;; using 45m/s
 
+(throw-ball 1 45 30)
+;; => 0.53
+(throw-ball 1 45 60)
+;; => 1.64
+(throw-ball 1 45 90)
+;; => 3.93
+
 ;; Problem 8
 
+(define travel-distance-bounce-iter
+  (lambda (elevation velocity angle bounces bounce-count total-distance)
+    (let ((current-distance (+ total-distance (travel-distance elevation velocity angle))))
+      (if (= bounces bounce-count)
+          current-distance
+          (let ((traveled-distance (travel-distance elevation velocity angle)))
+            (travel-distance-bounce-iter 0 (/ velocity 2) angle bounces (+ bounce-count 1) current-distance))))))
+
+(define travel-distance-bounce
+  (lambda (elevation velocity angle bounces)
+    (travel-distance-bounce-iter elevation velocity angle bounces 0 0)))
+
+(define travel-distance-bounce-inf-iter
+  (lambda (elevation velocity angle total-distance)
+    (let ((current-distance (+ total-distance (travel-distance elevation velocity angle))))
+      (if (< velocity 0.01)
+          current-distance
+          (let ((traveled-distance (travel-distance elevation velocity angle)))
+            (travel-distance-bounce-inf-iter 0 (/ velocity 2) angle current-distance))))))
+
+(define travel-distance-inf-bounce
+  (lambda (elevation velocity angle)
+    (travel-distance-bounce-inf-iter elevation velocity angle 0)))
+
+
+(displayln "Problem 8. Test")
+
+(travel-distance-bounce 1 45 45 0)
+;; => 92.5
+(travel-distance-bounce 1 45 45 1)
+;; => 132.12
+(travel-distance-bounce 1 45 45 2)
+;; => 144.79
+
+(travel-distance-inf-bounce 1 45 45)
+;; => 150.52
+
 ;; Problem 9
+
+(define integrate-velocity
+  (lambda (x0 y0 u0 v0 dt g m beta)
+    (if (< y0 0)
+        (sqrt (+ (square u0) (square v0)))
+        (integrate-velocity
+         (+ x0 (dx u0 dt))
+         (+ y0 (dy v0 dt))
+         (+ u0 (du u0 v0 dt m beta))
+         (+ v0 (dv u0 v0 dt m beta g))
+         dt
+         g
+         m
+         beta))))
+
+(define travel-velocity
+  (lambda (elevation velocity angle)
+    (let ((rad-angle (degree2radian angle)))
+      (integrate-velocity
+       0
+       elevation
+       (x-velocity velocity rad-angle)
+       (y-velocity velocity rad-angle)
+       0.1
+       gravity
+       mass
+       beta))))
+
+(define travel-distance-bounce-integrate-iter
+  (lambda (elevation velocity angle bounces bounce-count total-distance)
+    (let ((current-distance (+ total-distance (travel-distance elevation velocity angle))))
+      (if (= bounces bounce-count)
+          current-distance
+          (let ((traveled-velocity (travel-velocity elevation velocity angle)))
+            (travel-distance-bounce-integrate-iter 0 (/ traveled-velocity 2) angle bounces (+ bounce-count 1) current-distance))))))
+
+(define travel-distance-integrate-bounce
+  (lambda (elevation velocity angle bounces)
+    (travel-distance-bounce-integrate-iter elevation velocity angle bounces 0 0)))
+
+(displayln "Problem 9. Test")
+
+(travel-distance-integrate-bounce 1 45 45 0)
+;; => 92.5
+(travel-distance-integrate-bounce 1 45 45 1)
+;; => 106.75
+(travel-distance-integrate-bounce 1 45 45 2)
+;; => 110.79
