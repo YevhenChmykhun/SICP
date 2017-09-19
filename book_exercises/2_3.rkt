@@ -139,20 +139,20 @@
         ((variable? exp)
          (if (same-variable? exp var) 1 0))
         ((sum? exp)
-         (make-sum (deriv (addend exp) var)
-                   (deriv (augend1 exp) var)))
+         (make-sum (deriv1 (addend exp) var)
+                   (deriv1 (augend1 exp) var)))
         ((product? exp)
          (make-sum
            (make-product (multiplier exp)
-                         (deriv (multiplicand1 exp) var))
-           (make-product (deriv (multiplier exp) var)
+                         (deriv1 (multiplicand1 exp) var))
+           (make-product (deriv1 (multiplier exp) var)
                          (multiplicand1 exp))))
         ((exponentiation? exp)
          (make-product (make-product (exponent exp)
                                      (make-exponentiation
                                       (base exp)
                                       (make-sum (exponent exp) -1)))
-                       (deriv (base exp) var)))
+                       (deriv1 (base exp) var)))
         (else
          (error "unknown expression type -- DERIV" exp))))
 
@@ -170,3 +170,87 @@
 
 (deriv1 '(* x y (+ x 3)) 'x)
 ;; => (+ (* x y) (* y (+ x 3)))
+
+;; Exercise 2.58 a
+
+(define (deriv2 exp var)
+  (cond ((number? exp) 0)
+        ((variable? exp)
+         (if (same-variable? exp var) 1 0))
+        ((sum?2 exp)
+         (make-sum2 (deriv2 (addend2 exp) var)
+                    (deriv2 (augend exp) var)))
+        ((product?2 exp)
+         (make-sum2
+           (make-product2 (multiplier2 exp)
+                          (deriv2 (multiplicand exp) var))
+           (make-product2 (deriv2 (multiplier2 exp) var)
+                          (multiplicand exp))))
+        ((exponentiation?2 exp)
+         (make-product2 (make-product2 (exponent exp)
+                                       (make-exponentiation2
+                                        (base2 exp)
+                                        (make-sum2 (exponent exp) -1)))
+                       (deriv2 (base2 exp) var)))
+        (else
+         (error "unknown expression type -- DERIV" exp))))
+
+(define (make-sum2 a1 a2)
+  (cond ((=number? a1 0) a2)
+        ((=number? a2 0) a1)
+        ((and (number? a1) (number? a2)) (+ a1 a2))
+        (else (list a1 '+ a2))))
+
+(define (make-product2 m1 m2)
+  (cond ((or (=number? m1 0) (=number? m2 0)) 0)
+        ((=number? m1 1) m2)
+        ((=number? m2 1) m1)
+        ((and (number? m1) (number? m2)) (* m1 m2))
+        (else (list m1 '* m2))))
+
+(define (make-exponentiation2 b e)
+  (cond ((=number? e 0) 1)
+        ((=number? e 1) b)
+        ((and (number? b) (number? e)) (expt b e))
+        (else (list b '** e))))
+
+(define (sum?2 x)
+  (and (pair? x) (eq? (cadr x) '+)))
+
+(define (addend2 s) (car s))
+
+(define (product?2 x)
+  (and (pair? x) (eq? (cadr x) '*)))
+
+(define (multiplier2 p) (car p))
+
+(define (exponentiation?2 x)
+  (and (pair? x) (eq? (cadr x) '**)))
+
+(define (base2 e) (car e))
+
+(deriv2 '(x + (3 * (x + (y + 2)))) 'x)
+;; => 4
+
+;; Exercise 2.58 b
+;; MISSING
+
+;; Exercise 2.59
+
+(define (element-of-set? x set)
+  (cond ((null? set) false)
+        ((equal? x (car set)) true)
+        (else (element-of-set? x (cdr set)))))
+
+(define (union-set set1 set2)
+  (cond ((null? set1) set2)
+        ((null? set2) set1)
+        ((not (element-of-set? (car set1) set2))        
+         (cons (car set1)
+               (union-set (cdr set1) set2)))
+        (else (union-set (cdr set1) set2))))
+
+(union-set '(1 2 3) '(3 4 5))
+;; => (1 2 3 4 5)
+
+
