@@ -309,3 +309,108 @@
 
 (union-set3 '(1 2 3 4) '(3 4 5 6))
 ;; => ( 1 2 3 3 4 4 5 6)
+
+;; Exercise 2.63 a
+
+(define (entry tree) (car tree))
+
+(define (left-branch tree) (cadr tree))
+
+(define (right-branch tree) (caddr tree))
+
+(define (make-tree entry left right)
+  (list entry left right))
+
+(define (tree->list-1 tree)
+  (if (null? tree)
+      '()
+      (append (tree->list-1 (left-branch tree))
+              (cons (entry tree)
+                    (tree->list-1 (right-branch tree))))))
+
+(define (tree->list-2 tree)
+  (define (copy-to-list tree result-list)
+    (if (null? tree)
+        result-list
+        (copy-to-list (left-branch tree)
+                      (cons (entry tree)
+                            (copy-to-list (right-branch tree)
+                                          result-list)))))
+  (copy-to-list tree '()))
+
+(define tree1 '(7 (3 (1 () ()) (5 () ())) (9 () (11 () ()))))
+(define tree2 '(3 (1 () ()) (7 (5 () ()) (9 () (11 () ())))))
+(define tree3 '(5 (3 (1 () ()) ()) (9 (7 () ()) (11 () ()))))
+
+(tree->list-1 tree1)
+;; => (1 3 5 7 9 11)
+
+(tree->list-2 tree1)
+;; => (1 3 5 7 9 11)
+
+(tree->list-1 tree2)
+;; => (1 3 5 7 9 11)
+
+(tree->list-2 tree2)
+;; => (1 3 5 7 9 11)
+
+(tree->list-1 tree3)
+;; => (1 3 5 7 9 11)
+
+(tree->list-2 tree3)
+;; => (1 3 5 7 9 11)
+
+;; Exercise 2.63 b
+
+;; Both functions are basically the same. The only difference is
+;; what function is used to put two parts of a tree together.
+
+;; In the first case, it is append function which has a time complexity of O(n).
+;; But in each recursive call we need to traverse only first list
+;; (left branch) in order to combine two lists together.
+;; So overall the time complexity becomes O(nlogn)
+
+;; In the second case cons function is used with a time complexity of O(1)
+;; In the result, we have O(n) here.
+
+;; Exercise 2.64 a
+
+(define (list->tree elements)
+  (car (partial-tree elements (length elements))))
+
+(define (partial-tree elts n)
+  (if (= n 0)
+      (cons '() elts)
+      (let ((left-size (quotient (- n 1) 2)))
+        (let ((left-result (partial-tree elts left-size)))
+          (let ((left-tree (car left-result))
+                (non-left-elts (cdr left-result))
+                (right-size (- n (+ left-size 1))))
+            (let ((this-entry (car non-left-elts))
+                  (right-result (partial-tree (cdr non-left-elts)
+                                              right-size)))
+              (let ((right-tree (car right-result))
+                    (remaining-elts (cdr right-result)))
+                (cons (make-tree this-entry left-tree right-tree)
+                      remaining-elts))))))))
+
+;; 1. Calculate the length of the left tree. Simply substruct 1 which represent
+;;    current node from the length of the list and devide the result by 2.
+;; 2. Use partial-tree function to build the left tree.
+;; 3. Take the first element from the remaining list and use it as a node value.
+;; 4. Calculate the length of the right tree. Substract the length of the left
+;;    tree plus 1 (the current node) from the length of the element list.
+;; 5. Use partial-tree function to build the right tree.
+;; 6. Make tree by combining the left tree, the current node and the right tree.
+;;    (and add the remaining elements)
+
+(list->tree '(1 3 5 7 9 11))
+;;    5
+;;  /   \
+;; 1     9
+;;  \   / \
+;;   3 7  11
+
+;; Exercise 2.64 b
+
+;; the order of growth is O(n)
