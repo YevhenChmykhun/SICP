@@ -414,3 +414,21 @@
 ;; Exercise 2.64 b
 
 ;; the order of growth is O(n)
+
+;; Exercise 2.65
+
+(define (union-set4 tree1 tree2) 
+   (list->tree (union-set3 (tree->list-1 tree1) 
+                          (tree->list-1 tree2))))
+
+;; transform the tree to a list for a better view
+(tree->list-1 (union-set4 tree1 tree1))
+;; => (1 1 3 3 5 5 7 7 9 9 11 11) 
+  
+(define (intersection-set4 tree1 tree2) 
+   (list->tree (intersection-set2 (tree->list-1 tree1) 
+                                 (tree->list-1 tree2)))) 
+
+;; transform the tree to a list for a better view
+(tree->list-1 (intersection-set4 tree1 '(9 (7 () ()) ())))
+;; => (7 9)
