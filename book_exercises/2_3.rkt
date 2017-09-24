@@ -134,25 +134,25 @@
 
 ;; Exercise 2.57
 
-(define (deriv1 exp var)
+(define (deriv-1 exp var)
   (cond ((number? exp) 0)
         ((variable? exp)
          (if (same-variable? exp var) 1 0))
         ((sum? exp)
-         (make-sum (deriv1 (addend exp) var)
-                   (deriv1 (augend1 exp) var)))
+         (make-sum (deriv-1 (addend exp) var)
+                   (deriv-1 (augend-1 exp) var)))
         ((product? exp)
          (make-sum
            (make-product (multiplier exp)
-                         (deriv1 (multiplicand1 exp) var))
-           (make-product (deriv1 (multiplier exp) var)
-                         (multiplicand1 exp))))
+                         (deriv-1 (multiplicand-1 exp) var))
+           (make-product (deriv-1 (multiplier exp) var)
+                         (multiplicand-1 exp))))
         ((exponentiation? exp)
          (make-product (make-product (exponent exp)
                                      (make-exponentiation
                                       (base exp)
                                       (make-sum (exponent exp) -1)))
-                       (deriv1 (base exp) var)))
+                       (deriv-1 (base exp) var)))
         (else
          (error "unknown expression type -- DERIV" exp))))
 
@@ -162,74 +162,74 @@
       (op (car sequence) 
           (accumulate op initial (cdr sequence))))) 
 
-(define (augend1 s)
+(define (augend-1 s)
   (accumulate make-sum 0 (cddr s)))
 
-(define (multiplicand1 p)
+(define (multiplicand-1 p)
   (accumulate make-product 1 (cddr p)))
 
-(deriv1 '(* x y (+ x 3)) 'x)
+(deriv-1 '(* x y (+ x 3)) 'x)
 ;; => (+ (* x y) (* y (+ x 3)))
 
 ;; Exercise 2.58 a
 
-(define (deriv2 exp var)
+(define (deriv-2 exp var)
   (cond ((number? exp) 0)
         ((variable? exp)
          (if (same-variable? exp var) 1 0))
-        ((sum?2 exp)
-         (make-sum2 (deriv2 (addend2 exp) var)
-                    (deriv2 (augend exp) var)))
-        ((product?2 exp)
-         (make-sum2
-           (make-product2 (multiplier2 exp)
-                          (deriv2 (multiplicand exp) var))
-           (make-product2 (deriv2 (multiplier2 exp) var)
+        ((sum?-2 exp)
+         (make-sum-2 (deriv-2 (addend-2 exp) var)
+                    (deriv-2 (augend exp) var)))
+        ((product?-2 exp)
+         (make-sum-2
+           (make-product-2 (multiplier-2 exp)
+                          (deriv-2 (multiplicand exp) var))
+           (make-product-2 (deriv-2 (multiplier-2 exp) var)
                           (multiplicand exp))))
-        ((exponentiation?2 exp)
-         (make-product2 (make-product2 (exponent exp)
-                                       (make-exponentiation2
-                                        (base2 exp)
-                                        (make-sum2 (exponent exp) -1)))
-                       (deriv2 (base2 exp) var)))
+        ((exponentiation?-2 exp)
+         (make-product-2 (make-product-2 (exponent exp)
+                                       (make-exponentiation-2
+                                        (base-2 exp)
+                                        (make-sum-2 (exponent exp) -1)))
+                       (deriv-2 (base-2 exp) var)))
         (else
          (error "unknown expression type -- DERIV" exp))))
 
-(define (make-sum2 a1 a2)
+(define (make-sum-2 a1 a2)
   (cond ((=number? a1 0) a2)
         ((=number? a2 0) a1)
         ((and (number? a1) (number? a2)) (+ a1 a2))
         (else (list a1 '+ a2))))
 
-(define (make-product2 m1 m2)
+(define (make-product-2 m1 m2)
   (cond ((or (=number? m1 0) (=number? m2 0)) 0)
         ((=number? m1 1) m2)
         ((=number? m2 1) m1)
         ((and (number? m1) (number? m2)) (* m1 m2))
         (else (list m1 '* m2))))
 
-(define (make-exponentiation2 b e)
+(define (make-exponentiation-2 b e)
   (cond ((=number? e 0) 1)
         ((=number? e 1) b)
         ((and (number? b) (number? e)) (expt b e))
         (else (list b '** e))))
 
-(define (sum?2 x)
+(define (sum?-2 x)
   (and (pair? x) (eq? (cadr x) '+)))
 
-(define (addend2 s) (car s))
+(define (addend-2 s) (car s))
 
-(define (product?2 x)
+(define (product?-2 x)
   (and (pair? x) (eq? (cadr x) '*)))
 
-(define (multiplier2 p) (car p))
+(define (multiplier-2 p) (car p))
 
-(define (exponentiation?2 x)
+(define (exponentiation?-2 x)
   (and (pair? x) (eq? (cadr x) '**)))
 
-(define (base2 e) (car e))
+(define (base-2 e) (car e))
 
-(deriv2 '(x + (3 * (x + (y + 2)))) 'x)
+(deriv-2 '(x + (3 * (x + (y + 2)))) 'x)
 ;; => 4
 
 ;; Exercise 2.58 b
@@ -255,59 +255,59 @@
 
 ;; Exercise 2.60
 
-(define (adjoin-set2 x set)
+(define (adjoin-set-2 x set)
   (cons x set))
 
-(define (union-set2 set1 set2)
+(define (union-set-2 set1 set2)
   (append set1 set2))
 
-(define (intersection-set2 set1 set2)
+(define (intersection-set-2 set1 set2)
   (cond ((or (null? set1) (null? set2)) '())
         ((element-of-set? (car set1) set2)        
          (cons (car set1)
-               (intersection-set2 (cdr set1) set2)))
-        (else (intersection-set2 (cdr set1) set2))))
+               (intersection-set-2 (cdr set1) set2)))
+        (else (intersection-set-2 (cdr set1) set2))))
 
-(intersection-set2 '(2 3 2 1 3 2 2) '(9 4 3 6 3 2))
+(intersection-set-2 '(2 3 2 1 3 2 2) '(9 4 3 6 3 2))
 
 ;; Exercise 2.61
 
-(define (adjoin-set3 x set)
+(define (adjoin-set-3 x set)
   (if (or (null? set) (> (car set) x))
       (cons x set)
-      (cons (car set) (adjoin-set3 x (cdr set)))))
+      (cons (car set) (adjoin-set-3 x (cdr set)))))
 
-(adjoin-set3 3 '(1 2 4 5))
+(adjoin-set-3 3 '(1 2 4 5))
 ;; => (1 2 3 4 5)
 
-(adjoin-set3 3 '(1 2))
+(adjoin-set-3 3 '(1 2))
 ;; => (1 2 3)
 
-(adjoin-set3 3 '(4 5))
+(adjoin-set-3 3 '(4 5))
 ;; => (3 4 5)
 
-(adjoin-set3 3 '())
+(adjoin-set-3 3 '())
 ;; => (3)
 
 ;; Exercise 2.62
 
-(define (union-set3 set1 set2)
+(define (union-set-3 set1 set2)
   (cond ((null? set1) set2)
         ((null? set2) set1)
         (else
          (let ((a (car set1))
                (b (car set2)))
            (if (< a b)
-               (cons a (union-set3 (cdr set1) set2))
-               (cons b (union-set3 set1 (cdr set2))))))))
+               (cons a (union-set-3 (cdr set1) set2))
+               (cons b (union-set-3 set1 (cdr set2))))))))
 
-(union-set3 '() '(3 4 5 6))
+(union-set-3 '() '(3 4 5 6))
 ;; => (3 4 5 6)
 
-(union-set3 '(1 2 3 4) '())
+(union-set-3 '(1 2 3 4) '())
 ;; => (1 2 3 4)
 
-(union-set3 '(1 2 3 4) '(3 4 5 6))
+(union-set-3 '(1 2 3 4) '(3 4 5 6))
 ;; => ( 1 2 3 3 4 4 5 6)
 
 ;; Exercise 2.63 a
@@ -417,20 +417,20 @@
 
 ;; Exercise 2.65
 
-(define (union-set4 tree1 tree2) 
-   (list->tree (union-set3 (tree->list-1 tree1) 
+(define (union-set-4 tree1 tree2) 
+   (list->tree (union-set-3 (tree->list-1 tree1) 
                           (tree->list-1 tree2))))
 
 ;; transform the tree to a list for a better view
-(tree->list-1 (union-set4 tree1 tree1))
+(tree->list-1 (union-set-4 tree1 tree1))
 ;; => (1 1 3 3 5 5 7 7 9 9 11 11) 
   
-(define (intersection-set4 tree1 tree2) 
-   (list->tree (intersection-set2 (tree->list-1 tree1) 
+(define (intersection-set-4 tree1 tree2) 
+   (list->tree (intersection-set-2 (tree->list-1 tree1) 
                                  (tree->list-1 tree2)))) 
 
 ;; transform the tree to a list for a better view
-(tree->list-1 (intersection-set4 tree1 '(9 (7 () ()) ())))
+(tree->list-1 (intersection-set-4 tree1 '(9 (7 () ()) ())))
 ;; => (7 9)
 
 ;; Exercise 2.66
@@ -453,6 +453,7 @@
 (list->tree employee-list)
 
 (lookup 5 (list->tree employee-list))
+;; => (Roger)
 
 ;; Exercise 2.67
 
