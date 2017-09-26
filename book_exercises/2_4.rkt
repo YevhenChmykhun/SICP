@@ -100,3 +100,59 @@
 
 ;; The signature of the put procedure has to be changed accordingly.
 
+;; Exercise 2.74
+
+(define (attach-tag type-tag contents)
+  (cons type-tag contents))
+
+(define (type-tag datum)
+  (if (pair? datum)
+      (car datum)
+      (error "Bad tagged datum -- TYPE-TAG" datum)))
+
+(define (contents datum)
+  (if (pair? datum)
+      (cdr datum)
+      (error "Bad tagged datum -- CONTENTS" datum)))
+
+(define (apply-proc op employee-name personnel-file)
+  (let ((division-name (type-tag personnel-file)))
+    (let ((proc (get op division-name)))
+      (if proc
+          (apply proc employee-name (contents personnel-file))
+          (error
+            "No method for these types -- APPLY-GENERIC"
+            (list op division-name))))))
+
+(define (get-record employee-name personnel-file)
+  (let ((record (apply-proc 'get-record employee-name personnel-file))) 
+    (if record
+        (attach-tag (type-tag personnel-file) record)
+        #f)))
+
+(define (get-salary record)
+  ((get 'get-salary (type-tag record)) (contents record)))
+
+(define (find-employee-record employee-name personnel-files)
+  (if (null? personnel-files)
+      #f
+      (let ((record (get-record employee-name (car personnel-files))))
+        (if record
+            record
+            (find-employee-record employee-name (cdr personnel-files))))))
+
+;; Exercise 2.75
+
+(define (make-from-mag-ang r a)
+  (define (dispatch op)
+    (cond ((eq? op 'real-part) (* r (cos a)))
+          ((eq? op 'imag-part) (* r (sin a)))
+          ((eq? op 'magnitude) r)
+          ((eq? op 'angle) a)
+          (else
+           (error "Unknown op -- MAKE-FROM-MAG-ANG" op))))
+  dispatch)
+
+;; Exercise 2.76
+
+;; MISSING
