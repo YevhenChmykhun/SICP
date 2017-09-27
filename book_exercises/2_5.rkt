@@ -72,3 +72,46 @@
    'done)
 
 (define (=zero? x) (apply-generic '=zero? x))
+
+;; Exercise 2.81 a
+
+;; If we define a generic exponentiation operation and
+;; put a procedure for exponentiation in the Scheme-number package
+;; and then call apply-generic with two arguments of type scheme-number
+;; it will actually work. But if we call apply-generic with two arguments of
+;; type complex it will not be able to find a matching procedure for an
+;; operation called with a pair of arguments of type complex. Then it will
+;; apply a coercion procedure to one of the args and try to call apply-generic
+;; onc again which will lead to an infitite loop;
+
+;; Exercise 2.81 b
+
+;; apply-generic works correctly as is. If an appropriate procedure
+;; cant't be found in the coercion table apply-generic will raise an error.
+
+;; Exercise 2.81 c
+
+(define (apply-generic op . args)
+  (let ((type-tags (map type-tag args)))
+    (let ((proc (get op type-tags)))
+      (if proc
+          (apply proc (map contents args))
+          (if (= (length args) 2)
+              (let ((type1 (car type-tags))
+                    (type2 (cadr type-tags))
+                    (a1 (car args))
+                    (a2 (cadr args)))
+                (if (not (eg? type1 type2))
+                    (let ((t1->t2 (get-coercion type1 type2))
+                          (t2->t1 (get-coercion type2 type1)))
+                      (cond (t1->t2
+                             (apply-generic op (t1->t2 a1) a2))
+                            (t2->t1
+                             (apply-generic op a1 (t2->t1 a2)))
+                            (else
+                             (error "No method for these types"
+                                    (list op type-tags)))))
+                    (error "No method for these types"
+                           (list op type-tags))))
+                (error "No method for these types"
+                     (list op type-tags)))))))
