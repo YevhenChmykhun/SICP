@@ -101,7 +101,7 @@
                     (type2 (cadr type-tags))
                     (a1 (car args))
                     (a2 (cadr args)))
-                (if (not (eg? type1 type2))
+                (if (not (eq? type1 type2))
                     (let ((t1->t2 (get-coercion type1 type2))
                           (t2->t1 (get-coercion type2 type1)))
                       (cond (t1->t2
@@ -115,3 +115,67 @@
                            (list op type-tags))))
                 (error "No method for these types"
                      (list op type-tags)))))))
+
+;; Exercise 2.82
+
+;; MISSING
+
+;; Exercise 2.83
+
+;; MISSING
+
+;; Exercise 2.84
+
+;; MISSING
+
+;; Exercise 2.85
+
+;; MISSING
+
+;; Exercise 2.86
+
+;; MISSING
+
+;; Exercise 2.87
+
+;; MISSING
+
+;; Exercise 2.88
+
+;; MISSING
+
+;; Exercise 2.89
+
+;; MISSING
+
+;; Exercise 2.90
+
+;; MISSING
+
+;; Exercise 2.91
+
+;; MISSING
+
+;; Exercise 2.92
+
+;; MISSING
+
+;; Exercise 2.93
+
+;; MISSING
+
+;; Exercise 2.94
+
+;; MISSING
+
+;; Exercise 2.95
+
+;; MISSING
+
+;; Exercise 2.96
+
+;; MISSING
+
+;; Exercise 2.97
+
+;; MISSING
